@@ -28,7 +28,7 @@ class Library():
 
     def borrow_item(self, member_name, item_title):
         member = next((m for m in self.members if m.name == member_name), None)
-        item = next((i for i in self.items if i.title == item_title and not i==0), None) 
+        item = next((i for i in self.items if i.title == item_title), None) 
     
         if member and item:
             item.is_borrowed = 1
@@ -42,7 +42,7 @@ class Library():
         if member:
             item = next((i for i in member.borrowed_items if i.title == item_title), None)
             if item:
-                item.is_borrowed = False
+                item.is_borrowed = 0
                 member.borrowed_items.remove(item)
                 print(f"Item '{item_title}' returned by '{member_name}'.")
                 return
