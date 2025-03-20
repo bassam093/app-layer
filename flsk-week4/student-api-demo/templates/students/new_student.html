@@ -1,0 +1,12 @@
+{% extends "students/base.html" %}
+{% block html_body %}
+<h2>Add student</h2>
+{% if student_added is defined %}
+<p>
+    {{student_added.first_name}} {{student_added.last_name}} added with new student ID: {{student_added.student_id}}
+</p>
+{% endif %}
+<form id="student_data" method="post" action="{{url_for('new_student')}}">
+    {% include "students/student_data_table.html" %}
+</form>
+{% endblock %}

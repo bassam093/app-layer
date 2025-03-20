@@ -1,0 +1,13 @@
+{% extends "students/base.html" %}
+{% block html_body %}
+<h2>Edit student</h2>
+{% if student_updated is defined %}
+<p>
+    Record updated for:<br>
+    {{student_updated.first_name}} {{student_updated.last_name}} with student ID: {{student_updated.student_id}}
+</p>
+{% endif %}
+<form id="student_data" method="post" action="{{ url_for( 'editstudent', student_id=student.student_id ) }}">
+    {% include "students/student_data_table.html" %}
+</form>
+{% endblock %}

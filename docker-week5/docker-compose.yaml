@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"  # Expose port 5000 for external access
+    volumes:
+      - db-data:/app/db  # Persist SQLite database file
+
+volumes:
+  db-data:

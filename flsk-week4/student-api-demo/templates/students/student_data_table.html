@@ -1,0 +1,17 @@
+<table>
+    <tr>
+        <td>First name:</td><td><input type="text" name="first_name" {% if student is defined %}value="{{student.first_name}}"{% endif %}></td>
+    </tr>
+    <tr>
+        <td>Last name:</td><td><input type="text" name="last_name" {% if student is defined %}value="{{student.last_name}}"{% endif %}></td>
+    </tr>
+    <tr>
+        <td>Email address:</td><td><input type="text" name="email" {% if student is defined %}value="{{student.email}}"{% endif %}></td>
+    </tr>
+    <tr>
+        <td>Phone number:</td><td><input type="text" name="phone" {% if student is defined %}value="{{student.phone}}"{% endif %}></td>
+    </tr>
+    <tr>
+        <td></td><td><input type="submit" value="Save"></td>
+    </tr>
+</table>
