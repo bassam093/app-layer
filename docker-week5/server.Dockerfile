@@ -5,9 +5,7 @@ FROM python:3.13.2
 WORKDIR /app
 
 # copy all from source to destination
-COPY student_api.py .
-COPY create_db.py .
-COPY student.py .
+COPY Server .
 COPY requirements.txt .
 COPY config.py .
 COPY student.ini .

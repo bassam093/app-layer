@@ -5,10 +5,7 @@ FROM python:3.13.2
 WORKDIR /app
 
 # Copy necessary files
-COPY static .
-COPY templates .
-COPY student_frontend.py .
-COPY student_api_shim.py .
+COPY FrontEnd .
 COPY requirements.txt .
 COPY config.py .
 COPY student.ini .

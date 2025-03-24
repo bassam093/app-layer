@@ -1,0 +1,249 @@
+openapi: 3.0.0
+info:
+  title: Travel Booking API
+  version: 1.0.0
+  description: API for managing travel bookings
+  
+servers:
+  - url: http://localhost:8080/travel-booking-api
+    description: Development server
+
+paths:
+  /auth/login:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+        '401':
+          description: Authentication failed
+
+  /auth/logout:
+    post:
+      summary: User logout
+      responses:
+        '200':
+          description: Successful logout
+
+  /auth/register:
+    post:
+      summary: User registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Full name of the user
+                email:
+                  type: string
+                  format: email
+                  description: Email address of the user
+                username:
+                  type: string
+                  description: Desired username for the account
+                password:
+                  type: string
+                  format: password
+                  description: Password for the account
+      responses:
+        '201':
+          description: Account successfully created
+        '400':
+          description: Invalid input
+
+  /users/{userId}:
+    put:
+      summary: Update user profile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Successful update of user profile
+        '400':
+          description: Invalid input
+
+    delete:
+      summary: Delete user account
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: currentPassword
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account successfully deleted
+        '401':
+          description: Unauthorized - invalid credentials
+        '403':
+          description: Forbidden - not authorized to delete this account
+        '404':
+          description: User not found
+
+  /holidays:
+    get:
+      summary: Browse holidays
+      parameters:
+        - name: destination
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of holidays
+
+  /holidays/{holidayId}:
+    get:
+      summary: View holiday details
+      parameters:
+        - name: holidayId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Holiday details
+        '404':
+          description: Holiday not found
+
+  /bookings:
+    post:
+      summary: Create booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                holidayId:
+                  type: string
+                travelDates:
+                  type: string
+                travelerDetails:
+                  type: object
+      responses:
+        '201':
+          description: Booking created
+        '400':
+          description: Invalid input
+
+  /bookings/{bookingId}:
+    get:
+      summary: View booking details
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking details
+        '404':
+          description: Booking not found
+
+    put:
+      summary: Update booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                travelDates:
+                  type: string
+                travelerDetails:
+                  type: object
+      responses:
+        '200':
+          description: Booking updated
+        '400':
+          description: Invalid input
+
+    delete:
+      summary: Cancel booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking canceled
+        '404':
+          description: Booking not found
+
+  /payments:
+    post:
+      summary: Make payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bookingId:
+                  type: string
+                paymentDetails:
+                  type: object
+      responses:
+        '200':
+          description: Payment successful
+        '400':
+          description: Invalid input
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
