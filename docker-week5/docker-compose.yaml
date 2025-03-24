@@ -1,12 +1,15 @@
-version: '3.8'
-
 services:
-  app:
-    build: .
+  server:
+    build:
+      context: .
+      dockerfile: server.Dockerfile
     ports:
-      - "5000:5000"  # Expose port 5000 for external access
-    volumes:
-      - db-data:/app/db  # Persist SQLite database file
-
-volumes:
-  db-data:
+      - 81:81
+    restart: always
+  flask:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    ports:
+      - 80:80
+    restart: always
