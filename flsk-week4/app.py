@@ -28,7 +28,7 @@ def home():
 def login():
     data = request.json
     if db["users"].get(data['username']) == data['password']:
-        token = secrets.token_hex(16)
+        token = secrets.token_hex(12)
         db["tokens"][token] = data['username']
         return jsonify({"token": token}), 200
     return jsonify({"error": "Invalid credentials"}), 401
