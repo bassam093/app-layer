@@ -1,98 +1,274 @@
+import mysql.connector
 from flask import Flask, jsonify, request
-import secrets
-import functools
-
 
 app = Flask(__name__)
 
+db_config = {
+    "host": "mysql",
+    "user": "flaskuser",
+    "password": "flaskpassword",
+    "database": "flaskdb"
+}
 
-db = {"users": {}, "holidays": {}, "bookings": {}, "tokens": {}}
-
-
-def auth_required(f):
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if token not in db["tokens"]:
-            return jsonify({"error": "Unauthorized"}), 401
-        return f(*args, **kwargs)
-    return wrapper
-
+def get_db_connection():
+    connection = mysql.connector.connect(**db_config)
+    return connection
 
 @app.route('/')
 def home():
     return "Welcome to the Travel Booking API!"
 
-
-@app.route('/auth/login', methods=['POST'])
-def login():
-    data = request.json
-    if db["users"].get(data['username']) == data['password']:
-        token = secrets.token_hex(12)
-        db["tokens"][token] = data['username']
-        return jsonify({"token": token}), 200
-    return jsonify({"error": "Invalid credentials"}), 401
-
-@app.route('/auth/logout', methods=['POST'])
-@auth_required
-def logout():
-    token = request.headers.get('Authorization')
-    db["tokens"].pop(token, None)
-    return jsonify({"message": "Logged out"}), 200
-
-@app.route('/auth/register', methods=['POST'])
+@app.route('/register', methods=['POST'])
 def register():
     data = request.json
-    if data['username'] not in db["users"]:
-        db["users"][data['username']] = data['password']
-        return jsonify({"message": "Registered"}), 201
-    return jsonify({"error": "User exists"}), 400
+    connection = get_db_connection()
+    cursor = connection.cursor()
 
+    try:
+        cursor.execute("SELECT id FROM users WHERE username = %s", (data.get('username'),))
+        if cursor.fetchone():
+            return jsonify({"error": "Username already exists"}), 400
 
-@app.route('/users/<username>', methods=['PUT', 'DELETE'])
-@auth_required
-def manage_user(username):
-    if request.method == 'PUT':
-        db["users"][username] = request.json.get('password', db["users"][username])
-    elif request.method == 'DELETE':
-        db["users"].pop(username, None)
-    return jsonify({"message": "Success"}), 200
+        cursor.execute(
+            "INSERT INTO users (name, email, username, password) VALUES (%s, %s, %s, %s)",
+            (data.get('name'), data.get('email'), data.get('username'), data.get('password'))
+        )
 
+        user_id = cursor.lastrowid
+        connection.commit()
+
+        return jsonify({"message": "Account successfully created", "user_id": user_id}), 201
+
+    except mysql.connector.Error as err:
+        connection.rollback()
+        return jsonify({"error": str(err)}), 500
+
+    finally:
+        cursor.close()
+        connection.close()
+
+@app.route('/users/<user_id>', methods=['PUT'])
+def update_user(user_id):
+    data = request.json
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "UPDATE users SET name = %s, email = %s WHERE id = %s",
+        (data.get('name'), data.get('email'), user_id)
+    )
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+    
+    return jsonify({"message": "User updated successfully"}), 200
+
+@app.route('/users/<user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    current_password = request.args.get('currentPassword')
+    if not current_password:
+        return jsonify({"error": "Password is required"}), 400
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute("SELECT id FROM users WHERE id = %s AND password = %s", 
+                  (user_id, current_password))
+    
+    if not cursor.fetchone():
+        cursor.close()
+        connection.close()
+        return jsonify({"error": "Invalid password"}), 401
+
+    cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({"message": "User deleted successfully"}), 200
 
 @app.route('/holidays', methods=['GET'])
-@auth_required
 def get_holidays():
-    return jsonify(list(db["holidays"].values()))
+    destination = request.args.get('destination')
+    
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    if destination:
+        cursor.execute("SELECT * FROM holidays WHERE destination LIKE %s", (f"%{destination}%",))
+    else:
+        cursor.execute("SELECT * FROM holidays")
+    
+    holidays = cursor.fetchall()
+    
+    cursor.close()
+    connection.close()
+    
+    return jsonify(holidays)
+
+@app.route('/holidays', methods=['POST'])
+def add_holidays():
+    data = request.json
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "INSERT INTO holidays (destination, details) VALUES (%s, %s)",
+        (data.get('destination'), data.get('details', ''))
+    )
+
+    holiday_id = cursor.lastrowid
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({"message": "Holiday created", "id": holiday_id}), 201
 
 @app.route('/holidays/<holiday_id>', methods=['GET'])
-@auth_required
 def get_holiday(holiday_id):
-    return jsonify(db["holidays"].get(holiday_id, {"error": "Not found"}))
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM holidays WHERE id = %s", (holiday_id,))
+    
+    holiday = cursor.fetchone()
 
+    cursor.close()
+    connection.close()
+
+    if holiday:
+        return jsonify(holiday)
+    
+    return jsonify({"error": "Holiday not found"}), 404
 
 @app.route('/bookings', methods=['POST'])
-@auth_required
 def create_booking():
-    booking_id = secrets.token_hex(8)
-    db["bookings"][booking_id] = request.json
+    data = request.json
+    connection = get_db_connection()
+    
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """INSERT INTO bookings 
+           (holiday_id, travel_dates, traveler_details) 
+           VALUES (%s, %s, %s)""",
+        (data.get('holidayId'), 
+         data.get('travelDates'), str(data.get('travelerDetails')))
+     )
+    
+    booking_id = cursor.lastrowid
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
     return jsonify({"id": booking_id}), 201
 
-@app.route('/bookings/<booking_id>', methods=['GET', 'PUT', 'DELETE'])
-@auth_required
-def manage_booking(booking_id):
-    if request.method == 'GET':
-        return jsonify(db["bookings"].get(booking_id, {"error": "Not found"}))
-    elif request.method == 'PUT':
-        db["bookings"][booking_id].update(request.json)
-    elif request.method == 'DELETE':
-        db["bookings"].pop(booking_id, None)
-    return jsonify({"message": "Success"}), 200
+@app.route('/bookings/<booking_id>', methods=['GET'])
+def get_booking(booking_id):
+    data = request.json
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT * FROM bookings WHERE id = %s AND user_id = %s", 
+        (booking_id, request.user_id)
+    )
+    booking = cursor.fetchone()
+    
+    cursor.close()
+    connection.close()
+    
+    if booking:
+        return jsonify(booking_id, {"error": "Not found"}), 404
+
+@app.route('/bookings/<booking_id>', methods=['PUT'])
+def update_booking(booking_id):
+    data = request.json
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT id FROM bookings WHERE id = %s AND user_id = %s", 
+        (booking_id, request.user_id)
+    )
+    if not cursor.fetchone():
+        cursor.close()
+        connection.close()
+        return jsonify({"error": "Booking not found"}), 404
+
+    cursor.execute(
+        """UPDATE bookings 
+           SET travel_dates = %s, traveler_details = %s 
+           WHERE id = %s""",
+        (data.get('travelDates'), str(data.get('travelerDetails')), booking_id)
+    )
+    connection.commit()
+    
+    cursor.close()
+    connection.close()
+    
+    return jsonify({"message": "Booking updated"}), 200
+
+@app.route('/bookings/<booking_id>', methods=['DELETE'])
+def delete_booking(booking_id):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT id FROM bookings WHERE id = %s AND user_id = %s", 
+        (booking_id, request.user_id)
+    )
+    if not cursor.fetchone():
+        cursor.close()
+        connection.close()
+        return jsonify({"error": "Booking not found"}), 404
+
+    cursor.execute("DELETE FROM bookings WHERE id = %s", (booking_id,))
+    connection.commit()
+    
+    cursor.close()
+    connection.close()
+
+    return jsonify({"Success"}), 200
 
 
 @app.route('/payments', methods=['POST'])
-@auth_required
 def process_payment():
-    return jsonify({"message": "Payment processed"}), 200
+    data = request.json
+    if not all(k in data for k in ['bookingId', 'paymentDetails']):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT id FROM bookings WHERE id = %s AND user_id = %s", 
+        (data.get('bookingId'), request.user_id)
+    )
+    if not cursor.fetchone():
+        cursor.close()
+        connection.close()
+        return jsonify({"error": "Booking not found"}), 404
+
+    cursor.execute(
+        """INSERT INTO payments 
+           (booking_id, user_id, amount, payment_details, status) 
+           VALUES (%s, %s, %s, %s, %s)""",
+        (data.get('bookingId'), request.user_id, 
+         data.get('paymentDetails', {}).get('amount', 0),
+         str(data.get('paymentDetails')), 'completed')
+    )
+    
+    payment_id = cursor.lastrowid
+    connection.commit()
+    
+    cursor.close()
+    connection.close()
+    return jsonify({"Payment processed"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=80)
