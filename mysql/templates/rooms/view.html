@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Rooms - Hotel Booking System{% endblock %}
+
+{% block content %}
+<h2>Welcome to Hotel Booking System</h2>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>My Current Bookings</h5>
+            </div>
+            <div class="card-body">
+                {% if bookings %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Room</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in bookings %}
+                            <tr>
+                                <td>{{ booking.room_name }}</td>
+                                <td>{{ booking.check_in.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ booking.check_out.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% if booking.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    {% elif booking.status == 'confirmed' %}
+                                    <span class="badge bg-success">Confirmed</span>
+                                    {% elif booking.status == 'cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.status != 'cancelled' %}
+                                    <form action="{{ url_for('cancel_booking', booking_id=booking.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to cancel this booking?')">Cancel</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">You have no current bookings.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Available Rooms</h5>
+            </div>
+            <div class="card-body">
+                <p>There are currently <strong>{{ rooms|length }}</strong> rooms available for booking.</p>
+                <a href="#rooms-section" class="btn btn-primary">Browse Rooms</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4" id="rooms-section">
+    <div class="col-12">
+        <h3>Available Rooms</h3>
+    </div>
+
+    {% for room in rooms %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <img src="{{ url_for('static', filename='images/room-placeholder.jpg') }}" alt="{{ room.name }}" class="card-img-top img-fluid">
+            <div class="card-body">
+                <h5 class="card-title">{{ room.name }}</h5>
+                <p>{{ room.description }}</p>
+
+                <!-- Room Details -->
+                <ul class="list-group list-group-flush mb-3">
+                    <li class="list-group-item">Price: €{{ room.price_per_night }}/night</li>
+                    <li class="list-group-item">Capacity: {{ room.capacity }} persons</li>
+                </ul>
+
+                <!-- Booking Form -->
+                <div id="booking-form-{{ room.id }}" class="collapse">
+                    <form action="{{ url_for('create_booking') }}" method="POST">
+                        <!-- Hidden Room ID -->
+                        <input type="hidden" name="room_id" value="{{ room.id }}">
+
+                        <!-- Check-in Date -->
+                        <div class="mb-3">
+                            <label for="check_in_{{ room.id }}" class="form-label">Check-in Date</label>
+                            <input type="date" id="check_in_{{ room.id }}" name="check_in" required class="form-control check-in">
+                        </div>
+
+                        <!-- Check-out Date -->
+                        <div class="mb-3">
+                            <label for="check_out_{{ room.id }}" class="form-label">Check-out Date</label>
+                            <input type="date" id="check_out_{{ room.id }}" name="check_out" required class="form-control check-out">
+                        </div>
+
+                        <!-- Booking Summary -->
+                        <div class="alert alert-info mb-3">
+                            Total nights: 
+                            €<span id="total-nights-{{ room.id }}">0</span><br />
+                            Total price: 
+                            €<span id="total-price-{{ room.id }}">0</span><br />
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        Submit:
+                    {% endblock%
+                    }

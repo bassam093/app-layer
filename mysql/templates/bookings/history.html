@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Booking History - Hotel Booking{% endblock %}
+
+{% block content %}
+<h2>My Booking History</h2>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">All Bookings</h5>
+            <a href="#" class="btn btn-primary btn-sm">Book a Room</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Room</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Created On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                    <tr>
+                        <td>{{ booking.id }}</td>
+                        <td>{{ booking.room_name }}</td>
+                        <td>{{ booking.check_in.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ booking.check_out.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if booking.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif booking.status == 'confirmed' %}
+                            <span class="badge bg-success">Confirmed</span>
+                            {% elif booking.status == 'cancelled' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td>€{{ (booking.check_out - booking.check_in).days * booking.price_per_night }}</td>
+                        <td>{{ booking.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="#" class="btn btn-outline-primary">View</a>
+                                {% if booking.status != 'cancelled' and booking.check_in > now() %}
+                                <form action="{{ url_for('cancel_booking', booking_id=booking.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this booking?')">Cancel</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
