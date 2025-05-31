@@ -9,7 +9,7 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: travel_booking_mysql
+    container_name: Database_relations_multi_user
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: Qwepoi123

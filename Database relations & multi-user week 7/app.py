@@ -1,5 +1,20 @@
 import mysql.connector
 from flask import Flask, jsonify
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+def get_db_connection():
+    try:
+        return mysql.connector.connect(
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            database=os.getenv("DB_NAME")
+        )
+    except Exception as e:
+        print(f"Database connection failed: {e}")
+        return None
 
 app = Flask(__name__)   
 
@@ -17,18 +32,6 @@ def list_holidays():
                 return jsonify(holidays)
     except:
         return "Database error:", 500
-
-def get_db_connection():
-    try:
-        return mysql.connector.connect(
-            host="mysql",
-            user="root",
-            password="Qwepoi123",
-            database="travel_booking"
-        )
-    except:
-        print("Database connection failed")
-        return None
 
 def create_holidays_table():
     try:
