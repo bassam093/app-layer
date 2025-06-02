@@ -8,7 +8,7 @@ def read_numbers_from_file(filename):
 
 def main():
     parser = argparse.ArgumentParser(description="Calculate sum, average, min, or max of numbers.")
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('-s', '--sum', action='store_true', help='calculate sum')
     group.add_argument('-a', '--average', action='store_true', help='calculate average')
     group.add_argument('-m', '--min', action='store_true', help='find minimum')
@@ -16,27 +16,57 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-f', '--float', action='store_true', help='output as float')
     group.add_argument('-i', '--int', action='store_true', help='output as integer')
-    parser.add_argument('numbers', nargs='+', type=float, help='numbers to process')
+    parser.add_argument('numbers', nargs='*', type=float, help='numbers to process')
+    parser.add_argument('--config', default='config.ini', help='path to config file')
+    parser.add_argument('--file', help='path to file with numbers')
 
     args = parser.parse_args()
+    config = configparser.ConfigParser()
+    config.read(args.config)
 
-    numbers = args.numbers
+    if args.file:
+        numbers = read_numbers_from_file(args.file)
+    elif config.get('Input', 'file', fallback=None) and not args.numbers:
+        numbers = read_numbers_from_file(config.get('Input', 'file'))
+    else:
+        numbers = args.numbers
+    if not numbers:
+        parser.error("No numbers provided and no file specified.")
 
+    operation = None
     if args.sum:
-        result = sum(numbers)
+        operation = 'sum'
     elif args.average:
-        result = sum(numbers) / len(numbers)
+        operation = 'average'
     elif args.min:
-        result = min(numbers)
+        operation = 'min'
     elif args.max:
+        operation = 'max'
+    else:
+        operation = config.get('Operation', 'default', fallback='average')
+
+    if operation =='sum':
+        result = sum(numbers)
+    elif operation =='average':
+        result = sum(numbers) / len(numbers)
+    elif operation =='min':
+        result = min(numbers)
+    elif operation =='max':
         result = max(numbers)
+    else:
+        parser.error("Invalid operation specified.")
 
     if args.float:
-        output = float(result)
+        output_format = 'float'
     elif args.int:
-        output = int(result)
+        output_format = 'int'
     else:
+        output_format = config.get('Output', 'format', fallback='float')
+
+    if output_format == 'float':
         output = float(result)
+    else:
+        output = int(result)
 
     print(output)
 
