@@ -1,9 +1,7 @@
 import os
 import shutil
-import sys
 import argparse
 import logging
-from datetime import datetime
 
 def setup_logging(log_file, verbose):
     """Set up logging to file with appropriate level and format."""
